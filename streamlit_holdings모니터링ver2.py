@@ -11,8 +11,6 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-from twelvedata import TDClient
-td = TDClient(apikey="c0ad404c939a4cf492d4b2815045ea97")
 
 st.title("ETF Holdings 모니터링")
 
