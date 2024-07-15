@@ -33,7 +33,6 @@ import pandas as pd
 # Initialize a session state for dates if not already initialized
 # Initialize a session state for dates if not already initialized
 import datetime
-import time
 
 
 
@@ -145,7 +144,6 @@ if uploaded_file is not None:
             st.write("Data with Returns:", df)
         except Exception as e:
             st.write(f"Error during return calculation: {e}")
-
 
 
 
