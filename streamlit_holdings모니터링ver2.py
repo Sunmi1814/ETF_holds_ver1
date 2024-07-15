@@ -11,6 +11,9 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
+from twelvedata import TDClient
+td = TDClient(apikey="c0ad404c939a4cf492d4b2815045ea97")
+
 st.title("ETF Holdings 모니터링")
 
 # Create an upload button
@@ -30,15 +33,6 @@ import pandas as pd
 
 
 # In[ ]:
-# Initialize a session state for dates if not already initialized
-# Initialize a session state for dates if not already initialized
-import datetime
-import time
-
-
-# Initialize a session state for dates if not already initialized
-
-# Initialize a session state for dates if not already initialized
 if 'dates' not in st.session_state:
     st.session_state.dates = [None, None, None]
 
@@ -52,7 +46,7 @@ def remove_date():
         st.session_state.dates.pop()
 
 # Create the first date input widget for the end date
-st.session_state.dates[0] = st.date_input("end date", key="date_input_0", value=datetime.date(2023, 1, 1))
+st.session_state.dates[0] = st.date_input("end date", key="date_input_0")
 
 # Create date input widgets for the start dates
 for i in range(1, len(st.session_state.dates), 3):
@@ -61,50 +55,26 @@ for i in range(1, len(st.session_state.dates), 3):
         if i + j < len(st.session_state.dates):
             label = f"start date{i + j}" if i + j > 0 else "end date"
             with cols[j]:
-                st.session_state.dates[i + j] = st.date_input(label, key=f"date_input_{i + j}", value=datetime.date(2022, 1, 1))
+                st.session_state.dates[i + j] = st.date_input(label, key=f"date_input_{i + j}")
 
 # Display buttons to add or remove date inputs
 st.button("Add Date", on_click=add_date)
 st.button("Remove Date", on_click=remove_date)
 
-def fetch_ticker_data(ticker):
-    retries = 5
-    for attempt in range(retries):
-        try:
-            ticker_data = yf.download(ticker, period='5y')
-            return ticker_data
-        except Exception as e:
-            if attempt < retries - 1:
-                time.sleep(5)  # Retry after 5 seconds
-                continue
-            else:
-                st.write(f"Error fetching data for {ticker}: {e}")
-                return None
-
 def calculate_returns(df, end_date, start_dates):
     for i, ticker in enumerate(df['ticker']):
-        st.write(f"Fetching data for {ticker}...")
-        ticker_data = fetch_ticker_data(ticker)
-        if ticker_data is None:
-            continue
-        
-        st.write(f"Data for {ticker} from yfinance:", ticker_data)
         try:
+            ticker_data = yf.download(ticker, period='5y')
             end_price = ticker_data.loc[end_date, 'Close']
-            st.write(f"End price for {ticker} on {end_date}: {end_price}")
             
             for j, start_date in enumerate(start_dates):
                 start_price = ticker_data.loc[start_date, 'Close']
-                st.write(f"Start price for {ticker} on {start_date}: {start_price}")
                 return_col = f'수익률{j+1}'
                 if return_col not in df.columns:
                     df[return_col] = None
                 df.loc[i, return_col] = (end_price / start_price - 1) * 100
-                st.write(f"Return for {ticker} from {start_date} to {end_date}: {df.loc[i, return_col]}%")
-        except KeyError as e:
-            st.write(f"Data for {ticker} does not contain the date {e}")
         except Exception as e:
-            st.write(f"Error processing data for {ticker}: {e}")
+            print(f"Error fetching data for {ticker}: {e}")
     return df
 
 if uploaded_file is not None:
@@ -130,23 +100,19 @@ if uploaded_file is not None:
     # Button to calculate returns
     if st.button("Check return rate"):
         # Convert date inputs to strings for compatibility with yfinance
-        try:
-            end_date = st.session_state.dates[0].strftime('%Y-%m-%d')
-            start_dates = [date.strftime('%Y-%m-%d') for date in st.session_state.dates[1:] if date is not None]
+        end_date = st.session_state.dates[0].strftime('%Y-%m-%d')
+        start_dates = [date.strftime('%Y-%m-%d') for date in st.session_state.dates[1:] if date is not None]
         
-            # Calculate returns and update the dataframe
-            df = calculate_returns(df, end_date, start_dates)
+        # Calculate returns and update the dataframe
+        df = calculate_returns(df, end_date, start_dates)
         
-            # Format the returns columns as percentages
-            for col in df.columns:
-                if '수익률' in col:
-                    df[col] = df[col].apply(lambda x: f"{x:.2f}%" if pd.notnull(x) else None)
+        # Format the returns columns as percentages
+        for col in df.columns:
+            if '수익률' in col:
+                df[col] = df[col].apply(lambda x: f"{x:.2f}%" if pd.notnull(x) else None)
         
-            # Display the modified dataframe
-            st.write("Data with Returns:", df)
-        except Exception as e:
-            st.write(f"Error during return calculation: {e}")
-
+        # Display the modified dataframe
+        st.write("Data with Returns:", df)
 
 
 
@@ -155,7 +121,30 @@ if uploaded_file is not None:
 
 
 # In[ ]:
+ticker_input = st.text_input("Enter a ticker symbol (e.g., AAPL)")
 
+# 기간 및 간격 설정
+period = '5y'
+interval = '1day'
+
+# 버튼을 누르면 데이터 가져오기
+if st.button("Fetch Data"):
+    if ticker_input:
+        try:
+            ticker_data = td.time_series(
+                symbol=ticker_input,
+                interval=interval,
+                outputsize=5000,
+                start_date='2018-01-01',
+                order='asc'
+            ).as_pandas()
+            ticker_close = ticker_data[['close']]
+            st.write(f"Data for {ticker_input}:")
+            st.write(ticker_close)
+        except Exception as e:
+            st.write(f"Error fetching data for {ticker_input}: {e}")
+    else:
+        st.write("Please enter a ticker symbol.")
 
 
 
