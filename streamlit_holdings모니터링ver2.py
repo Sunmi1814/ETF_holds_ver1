@@ -37,6 +37,8 @@ import time
 
 
 # Initialize a session state for dates if not already initialized
+
+# Initialize a session state for dates if not already initialized
 if 'dates' not in st.session_state:
     st.session_state.dates = [None, None, None]
 
@@ -66,14 +68,14 @@ st.button("Add Date", on_click=add_date)
 st.button("Remove Date", on_click=remove_date)
 
 def fetch_ticker_data(ticker):
-    retries = 3
+    retries = 5
     for attempt in range(retries):
         try:
             ticker_data = yf.download(ticker, period='5y')
             return ticker_data
         except Exception as e:
             if attempt < retries - 1:
-                time.sleep(2)  # Retry after 2 seconds
+                time.sleep(5)  # Retry after 5 seconds
                 continue
             else:
                 st.write(f"Error fetching data for {ticker}: {e}")
@@ -144,7 +146,6 @@ if uploaded_file is not None:
             st.write("Data with Returns:", df)
         except Exception as e:
             st.write(f"Error during return calculation: {e}")
-
 
 
 
