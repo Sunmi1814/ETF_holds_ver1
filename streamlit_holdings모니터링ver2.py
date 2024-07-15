@@ -119,31 +119,27 @@ if uploaded_file is not None:
 
 
 # In[ ]:
-ticker_input = st.text_input("Enter a ticker symbol (e.g., AAPL)")
+from yahooquery import Ticker
+
+# 티커 입력 받기
+ticker_input = st.text_input("Enter a ticker symbol (e.g., AAPL)", key="ticker_input")
 
 # 기간 및 간격 설정
 period = '5y'
-interval = '1day'
+interval = '1d'
 
 # 버튼을 누르면 데이터 가져오기
-if st.button("Fetch Data"):
+if st.button("Fetch Data", key="fetch_data_button"):
     if ticker_input:
         try:
-            ticker_data = td.time_series(
-                symbol=ticker_input,
-                interval=interval,
-                outputsize=5000,
-                start_date='2018-01-01',
-                order='asc'
-            ).as_pandas()
-            ticker_close = ticker_data[['close']]
+            tickers = Ticker(ticker_input, asynchronous=True)
+            df = tickers.history(period=period, interval=interval)
             st.write(f"Data for {ticker_input}:")
-            st.write(ticker_close)
+            st.write(df)
         except Exception as e:
             st.write(f"Error fetching data for {ticker_input}: {e}")
     else:
         st.write("Please enter a ticker symbol.")
-
 
 
 
