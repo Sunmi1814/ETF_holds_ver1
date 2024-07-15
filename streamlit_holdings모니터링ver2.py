@@ -33,6 +33,8 @@ import pandas as pd
 # Initialize a session state for dates if not already initialized
 # Initialize a session state for dates if not already initialized
 import datetime
+import time
+
 
 
 # Initialize a session state for dates if not already initialized
@@ -64,13 +66,29 @@ for i in range(1, len(st.session_state.dates), 3):
 st.button("Add Date", on_click=add_date)
 st.button("Remove Date", on_click=remove_date)
 
+def fetch_ticker_data(ticker):
+    retries = 3
+    for attempt in range(retries):
+        try:
+            ticker_data = yf.download(ticker, period='5y')
+            return ticker_data
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(2)  # Retry after 2 seconds
+                continue
+            else:
+                st.write(f"Error fetching data for {ticker}: {e}")
+                return None
+
 def calculate_returns(df, end_date, start_dates):
     for i, ticker in enumerate(df['ticker']):
+        st.write(f"Fetching data for {ticker}...")
+        ticker_data = fetch_ticker_data(ticker)
+        if ticker_data is None:
+            continue
+        
+        st.write(f"Data for {ticker} from yfinance:", ticker_data)
         try:
-            st.write(f"Fetching data for {ticker}...")
-            ticker_data = yf.download(ticker, period='5y')
-            st.write(f"Data for {ticker} from yfinance:", ticker_data)
-
             end_price = ticker_data.loc[end_date, 'Close']
             st.write(f"End price for {ticker} on {end_date}: {end_price}")
             
@@ -82,8 +100,10 @@ def calculate_returns(df, end_date, start_dates):
                     df[return_col] = None
                 df.loc[i, return_col] = (end_price / start_price - 1) * 100
                 st.write(f"Return for {ticker} from {start_date} to {end_date}: {df.loc[i, return_col]}%")
+        except KeyError as e:
+            st.write(f"Data for {ticker} does not contain the date {e}")
         except Exception as e:
-            st.write(f"Error fetching data for {ticker}: {e}")
+            st.write(f"Error processing data for {ticker}: {e}")
     return df
 
 if uploaded_file is not None:
